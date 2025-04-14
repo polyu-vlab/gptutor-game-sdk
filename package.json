@@ -13,7 +13,7 @@
         "url": "git+https://github.com/polyu-vlab/gptutor-game-sdk.git"
     },
     "publishConfig": {
-        "registry": "https://npm.pkg.github.com",
+        "registry": "@polyu-vlab:https://npm.pkg.github.com",
         "access": "restricted"
     },
     "scripts": {
