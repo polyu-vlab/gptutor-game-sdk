@@ -9,20 +9,37 @@ SDK for integrating interactive games with GPTutor platform.
 1. Create a `.npmrc` file in your project:
 
 ```bash
+# For a single organization/scope
 echo "@polyu-vlab:registry=https://npm.pkg.github.com" > .npmrc
+echo "//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}" >> .npmrc
+
+# For multiple organizations/scopes
+echo "@polyu-vlab:registry=https://npm.pkg.github.com" >> .npmrc
+echo "@other-org:registry=https://npm.pkg.github.com" >> .npmrc
 echo "//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}" >> .npmrc
 ```
 
 2. Set your GitHub token (required for private package access):
 
 ```bash
+# For personal access token
 export GITHUB_TOKEN=your_github_token
+
+# For GitHub Actions workflow
+# The GITHUB_TOKEN is automatically available
 ```
 
 3. Install the package:
 
 ```bash
+# Using pnpm
 pnpm add @polyu-vlab/gptutor-game-sdk
+
+# Using npm
+npm install @polyu-vlab/gptutor-game-sdk
+
+# Using yarn
+yarn add @polyu-vlab/gptutor-game-sdk
 ```
 
 ### For Local Development
@@ -49,6 +66,28 @@ make link
 # In your project directory
 pnpm link --global @polyu-vlab/gptutor-game-sdk
 ```
+
+### Troubleshooting
+
+If you encounter authentication issues:
+
+1. Verify your GitHub token has the correct permissions:
+
+   - `read:packages` (required for installation)
+   - `write:packages` (required for publishing)
+   - `delete:packages` (required for package deletion)
+   - `repo` (required for private repositories)
+
+2. Check your `.npmrc` file:
+
+   - Ensure the registry URL is correct
+   - Verify the auth token is properly set
+   - Make sure there are no conflicting registry settings
+
+3. For GitHub Actions workflows:
+   - Ensure the workflow has the correct permissions
+   - Verify the `GITHUB_TOKEN` has access to the package
+   - Check if the package's access control is properly configured
 
 ## Development
 
