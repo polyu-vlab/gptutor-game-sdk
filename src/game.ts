@@ -1,12 +1,18 @@
 import { GameConfig, GameMessage, GameResult } from "./types";
 
+interface GameSDKOptions {
+  allowedOrigins?: string[];
+}
+
 export class GameSDK {
   private parentOrigin: string;
   private config: GameConfig | null = null;
   private results: GameResult[] = [];
+  private allowedOrigins: string[] = [];
 
-  constructor() {
+  constructor(options?: GameSDKOptions) {
     this.parentOrigin = window.location.ancestorOrigins[0] || "*";
+    this.allowedOrigins = options?.allowedOrigins || [];
     this.setupMessageListener();
     this.notifyReady();
   }
@@ -16,9 +22,19 @@ export class GameSDK {
   }
 
   private handleMessage = (event: MessageEvent) => {
-    if (this.parentOrigin !== "*" && event.origin !== this.parentOrigin) {
+    // Check if the origin is allowed
+    const isAllowedOrigin = this.allowedOrigins.includes(event.origin);
+
+    if (
+      this.parentOrigin !== "*" &&
+      event.origin !== this.parentOrigin &&
+      !isAllowedOrigin
+    ) {
       console.warn(
-        `Rejected message from unauthorized origin: ${event.origin}`
+        `Rejected message from unauthorized origin: ${event.origin}. ` +
+          `Allowed origins: ${[this.parentOrigin, ...this.allowedOrigins].join(
+            ", "
+          )}`
       );
       return;
     }
