@@ -4,25 +4,15 @@ SDK for integrating interactive games with GPTutor platform.
 
 ## Installation
 
-### For Production Use
-
-1. Create a `.npmrc` file in your project:
-
 ```bash
-echo "@polyu-vlab:registry=https://npm.pkg.github.com" > .npmrc
-echo "//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}" >> .npmrc
-```
+# Using npm
+npm install @gptutor/game-sdk
 
-2. Set your GitHub token (required for private package access):
+# Using yarn
+yarn add @gptutor/game-sdk
 
-```bash
-export GITHUB_TOKEN=your_github_token
-```
-
-3. Install the package:
-
-```bash
-pnpm add @polyu-vlab/gptutor-game-sdk
+# Using pnpm
+pnpm add @gptutor/game-sdk
 ```
 
 ### For Local Development
@@ -47,7 +37,7 @@ pnpm install
 make link
 
 # In your project directory
-pnpm link --global @polyu-vlab/gptutor-game-sdk
+pnpm link --global @gptutor/game-sdk
 ```
 
 ## Development
@@ -83,71 +73,20 @@ make version-major
 
 ## Publishing
 
-### Prerequisites
-
-1. Generate a GitHub Personal Access Token:
-
-   - Go to GitHub.com → Settings → Developer Settings → Personal Access Tokens → Tokens (classic)
-   - Generate a new token with these permissions:
-     - `read:packages`
-     - `write:packages`
-     - `delete:packages`
-     - `repo` (for private repositories)
-
-2. Set your GitHub token:
+Update the version (if needed) and publish the package:
 
 ```bash
-export GITHUB_TOKEN=your_github_token
-```
-
-3. Configure package access:
-
-   - Go to your GitHub repository
-   - Navigate to Settings → Packages
-   - Ensure the package visibility is set to "Private"
-   - Configure access for your organization members
-
-### Publishing Process
-
-1. Update the version (if needed):
-
-```bash
+# Update version
 make version-patch  # or version-minor/version-major
-```
 
-2. Publish the package:
-
-```bash
+# Publish to npm
 make publish
-```
-
-The publish script will:
-
-- Build the package
-- Configure npm with your GitHub token
-- Publish to GitHub Packages as a private package
-
-### Access Control
-
-To allow other team members to access the private package:
-
-1. They need to:
-
-   - Be a member of the @polyu-vlab organization
-   - Have the appropriate repository permissions
-   - Set up their own GitHub token in their `.npmrc`
-
-2. Their `.npmrc` should contain:
-
-```bash
-@polyu-vlab:registry=https://npm.pkg.github.com
-//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
 ```
 
 ## Usage
 
 ```typescript
-import { GameSDK } from "@polyu-vlab/gptutor-game-sdk";
+import { GameSDK } from "@gptutor/game-sdk";
 
 class MyGame extends GameSDK {
   protected onQuestionsReceived() {
@@ -183,7 +122,6 @@ const game = new MyGame();
 
    - Update version if needed
    - Run `make publish`
-   - The package will be published to GitHub Packages as a private package
 
 4. **Cleanup**:
 
@@ -191,7 +129,7 @@ const game = new MyGame();
 
      ```bash
      # In your project
-     pnpm unlink --global @polyu-vlab/gptutor-game-sdk
+     pnpm unlink --global @gptutor/game-sdk
 
      # In the SDK directory
      make unlink
@@ -218,7 +156,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 The main class for game implementations. Extend this class to create your game.
 
 ```typescript
-import { GameSDK } from "@polyu-vlab/gptutor-game-sdk";
+import { GameSDK } from "@gptutor/game-sdk";
 
 class MyGame extends GameSDK {
   // Override methods here
@@ -245,7 +183,7 @@ class MyGame extends GameSDK {
 Class for the parent application to communicate with the game.
 
 ```typescript
-import { GameParentSDK } from "@polyu-vlab/gptutor-game-sdk";
+import { GameParentSDK } from "@gptutor/game-sdk";
 
 const gameSDK = new GameParentSDK(
   gameUrl: string,
@@ -303,7 +241,7 @@ interface GameCallbacks {
 #### Basic Game Implementation
 
 ```typescript
-import { GameSDK } from "@polyu-vlab/gptutor-game-sdk";
+import { GameSDK } from "@gptutor/game-sdk";
 
 class QuizGame extends GameSDK {
   protected onQuestionsReceived() {
@@ -339,7 +277,7 @@ const game = new QuizGame();
 #### Parent Application Implementation
 
 ```typescript
-import { GameParentSDK } from "@polyu-vlab/gptutor-game-sdk";
+import { GameParentSDK } from "@gptutor/game-sdk";
 
 const gameConfig: GameConfig = {
   questions: [
