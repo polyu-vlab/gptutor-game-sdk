@@ -1,5 +1,5 @@
 {
-    "name": "@polyu-vlab/gptutor-game-sdk",
+    "name": "@gptutor/game-sdk",
     "version": "1.0.0",
     "description": "SDK for integrating interactive games with GPTutor platform",
     "main": "dist/index.js",
@@ -13,8 +13,8 @@
         "url": "git+https://github.com/polyu-vlab/gptutor-game-sdk.git"
     },
     "publishConfig": {
-        "registry": "@polyu-vlab:https://npm.pkg.github.com",
-        "access": "restricted"
+        "registry": "https://registry.npmjs.org/",
+        "access": "public"
     },
     "scripts": {
         "build": "vite build",
