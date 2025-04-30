@@ -1,17 +1,16 @@
-import { GameConfig, GameMessage, GameResult } from "./types";
+import { GameConfig, GameMessage, GameResult, Question } from "./types";
 
 interface GameSDKOptions {
   allowedOrigins?: string[];
 }
 
 export class GameSDK {
-  private parentOrigin: string;
+  private parentOrigin: string | null = null;
   private config: GameConfig | null = null;
   private results: GameResult[] = [];
   private allowedOrigins: string[] = [];
 
   constructor(options?: GameSDKOptions) {
-    this.parentOrigin = window.location.ancestorOrigins[0] || "*";
     this.allowedOrigins = options?.allowedOrigins || [];
     this.setupMessageListener();
     this.notifyReady();
@@ -22,42 +21,34 @@ export class GameSDK {
   }
 
   private handleMessage = (event: MessageEvent) => {
-    // Check if the origin is allowed
-    const isAllowedOrigin = this.allowedOrigins.includes(event.origin);
-
-    if (
-      this.parentOrigin !== "*" &&
-      event.origin !== this.parentOrigin &&
-      !isAllowedOrigin
-    ) {
-      console.warn(
-        `Rejected message from unauthorized origin: ${event.origin}. ` +
-          `Allowed origins: ${[this.parentOrigin, ...this.allowedOrigins].join(
-            ", "
-          )}`
-      );
-      return;
-    }
-
     try {
       const message: GameMessage = event.data;
 
-      switch (message.type) {
-        case "INIT_QUESTIONS":
-          const initPayload = message.payload as {
-            questions: GameConfig["questions"];
-            connectionTimeout?: number;
-          };
-          this.config = {
-            questions: initPayload.questions || [],
-            connectionTimeout: initPayload.connectionTimeout,
-          };
+      // Accept INIT_QUESTIONS from any origin to set parentOrigin, then enforce it
+      if (this.parentOrigin === null) {
+        if (message.type === "INIT_QUESTIONS") {
+          this.parentOrigin = event.origin;
+          const initPayload = message.payload as { config: GameConfig };
+          this.config = initPayload.config;
           this.onQuestionsReceived();
-          break;
+        }
+        return;
+      }
+
+      // Validate subsequent messages against parentOrigin or allowedOrigins
+      if (
+        event.origin !== this.parentOrigin &&
+        !this.allowedOrigins.includes(event.origin)
+      ) {
+        console.warn(
+          `Rejected message from unauthorized origin: ${event.origin}`
+        );
+        return;
+      }
+
+      switch (message.type) {
         case "UPDATE_QUESTIONS":
-          const updatePayload = message.payload as {
-            questions: GameConfig["questions"];
-          };
+          const updatePayload = message.payload as { questions: Question[] };
           if (this.config) {
             this.config.questions = updatePayload.questions || [];
             this.onQuestionsUpdated();
@@ -70,11 +61,11 @@ export class GameSDK {
   };
 
   protected onQuestionsReceived() {
-    // Override this in your game implementation
+    // Override in game implementation
   }
 
   protected onQuestionsUpdated() {
-    // Override this in your game implementation
+    // Override in game implementation
   }
 
   protected notifyReady() {
@@ -82,8 +73,9 @@ export class GameSDK {
   }
 
   protected sendAnswer(questionId: string, answerId: string, correct: boolean) {
-    this.results.push({ questionId, answerId, correct });
-    this.sendMessage("QUESTION_ANSWERED", { questionId, answerId, correct });
+    const result: GameResult = { questionId, answerId, correct };
+    this.results.push(result);
+    this.sendMessage("QUESTION_ANSWERED", result);
   }
 
   protected completeGame() {
@@ -99,11 +91,11 @@ export class GameSDK {
   }
 
   private sendMessage(type: string, payload?: unknown) {
-    window.parent.postMessage({ type, payload }, this.parentOrigin);
+    window.parent.postMessage({ type, payload }, this.parentOrigin || "*");
   }
 
-  public getQuestions() {
-    return this.config?.questions || [];
+  public getConfig(): GameConfig | null {
+    return this.config;
   }
 
   public destroy() {

@@ -1,4 +1,11 @@
-import { GameCallbacks, GameConfig, GameErrorType, GameMessage } from "./types";
+import {
+  GameCallbacks,
+  GameConfig,
+  GameErrorType,
+  GameMessage,
+  GameResult,
+  Question,
+} from "./types";
 
 export class GameParentSDK {
   private iframe: HTMLIFrameElement | null = null;
@@ -44,17 +51,15 @@ export class GameParentSDK {
           break;
         case "QUESTION_ANSWERED":
           if (this.callbacks.onAnswer && message.payload) {
-            const { questionId, answerId, correct } = message.payload as {
-              questionId: string;
-              answerId: string;
-              correct: boolean;
-            };
+            const { questionId, answerId, correct } =
+              message.payload as GameResult;
             this.callbacks.onAnswer(questionId, answerId, correct);
           }
           break;
         case "GAME_COMPLETED":
           if (this.callbacks.onComplete && message.payload) {
-            this.callbacks.onComplete(message.payload as any);
+            const { results } = message.payload as { results: GameResult[] };
+            this.callbacks.onComplete(results);
           }
           break;
         case "GAME_ERROR":
@@ -82,7 +87,7 @@ export class GameParentSDK {
       this.connectionTimeout = null;
     }
     this.isConnected = true;
-    this.sendMessage("INIT_QUESTIONS", { questions: this.config.questions });
+    this.sendMessage("INIT_QUESTIONS", { config: this.config });
   }
 
   private startConnectionTimeout() {
@@ -117,7 +122,7 @@ export class GameParentSDK {
     }
   }
 
-  public updateQuestions(questions: GameConfig["questions"]) {
+  public updateQuestions(questions: Question[]) {
     this.config.questions = questions;
     if (this.isConnected) {
       this.sendMessage("UPDATE_QUESTIONS", { questions });

@@ -27,6 +27,8 @@ export interface GameMessage {
 
 export interface GameConfig {
   questions: Question[];
+  title?: string;
+  description?: string;
   connectionTimeout?: number;
 }
 
