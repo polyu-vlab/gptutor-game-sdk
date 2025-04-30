@@ -1,339 +1,160 @@
 # GPTutor Game SDK
 
-SDK for integrating interactive games with GPTutor platform.
+The GPTutor Game SDK enables communication between a parent window and a game embedded in an iframe. It supports sending questions, game title, and description from the parent to the child, and receiving answers and results from the child.
+
+## Features
+
+- **TypeScript Support**: Strongly typed interfaces for better development experience.
+- **Secure Communication**: Validates message origins for security.
+- **Configurable**: Pass game title, description, and questions from parent to child.
+- **Extensible**: Easy to override methods for custom game logic.
 
 ## Installation
 
 ```bash
-# Using npm
-npm install @gptutor/game-sdk
-
-# Using yarn
-yarn add @gptutor/game-sdk
-
-# Using pnpm
-pnpm add @gptutor/game-sdk
-```
-
-### For Local Development
-
-1. Clone the repository:
-
-```bash
-git clone https://github.com/polyu-vlab/gptutor-game-sdk.git
-cd gptutor-game-sdk
-```
-
-2. Install dependencies:
-
-```bash
-pnpm install
-```
-
-3. Link the package for local development:
-
-```bash
-# In the SDK directory
-make link
-
-# In your project directory
-pnpm link --global @gptutor/game-sdk
-```
-
-## Development
-
-### Available Commands
-
-```bash
-# Start development server
-make dev
-
-# Run tests
-make test
-
-# Build the package
-make build
-
-# Clean build artifacts
-make clean
-```
-
-### Version Management
-
-```bash
-# Bump patch version (1.0.0 -> 1.0.1)
-make version-patch
-
-# Bump minor version (1.0.0 -> 1.1.0)
-make version-minor
-
-# Bump major version (1.0.0 -> 2.0.0)
-make version-major
-```
-
-## Publishing
-
-Update the version (if needed) and publish the package:
-
-```bash
-# Update version
-make version-patch  # or version-minor/version-major
-
-# Publish to npm
-make publish
+pnpm install @gptutor/game-sdk
 ```
 
 ## Usage
 
-```typescript
-import { GameSDK } from "@gptutor/game-sdk";
+### Parent Side (React Example)
 
-class MyGame extends GameSDK {
-  protected onQuestionsReceived() {
-    // Handle questions received from parent
-    const questions = this.getQuestions();
-    // ... your game logic
-  }
+1. **Embed the Game in an Iframe**:
 
-  protected onQuestionsUpdated() {
-    // Handle questions update from parent
-    const questions = this.getQuestions();
-    // ... your game logic
-  }
-}
+   ```tsx
+   import React, { useRef, useEffect } from "react";
+   import { GameParentSDK } from "@gptutor/game-sdk";
 
-const game = new MyGame();
-```
+   const GameComponent: React.FC = () => {
+     const iframeRef = useRef<HTMLIFrameElement>(null);
 
-## Development Workflow
+     useEffect(() => {
+       const config = {
+         questions: [
+           {
+             id: "q1",
+             text: "What is 2+2?",
+             options: [{ id: "a1", text: "4" }],
+             correctAnswerId: "a1",
+           },
+         ],
+         title: "Math Quiz",
+         description: "A simple math game",
+         connectionTimeout: 10000,
+       };
+       const callbacks = {
+         onAnswer: (questionId, answerId, correct) =>
+           console.log(`Answer: ${questionId}, ${answerId}, ${correct}`),
+         onComplete: (results) => console.log("Completed:", results),
+         onError: (type, message) => console.error(`${type}: ${message}`),
+         onEvent: (type, data) => console.log(`Event: ${type}`, data),
+       };
 
-1. **Local Development**:
+       const sdk = new GameParentSDK(
+         "https://example.com/game.html",
+         config,
+         callbacks
+       );
+       if (iframeRef.current) {
+         sdk.initialize(iframeRef.current);
+       }
 
-   - Use `make link` to link the package globally
-   - Make changes to the SDK
-   - Changes will be reflected immediately in projects using the linked package
+       return () => {
+         sdk.destroy();
+       };
+     }, []);
 
-2. **Testing Changes**:
+     return (
+       <iframe
+         ref={iframeRef}
+         src="https://example.com/game.html"
+         title="Game"
+         style={{ width: "100%", height: "100%" }}
+       />
+     );
+   };
 
-   - Run `make build` to build the package
-   - Test in your project
+   export default GameComponent;
+   ```
 
-3. **Publishing**:
+2. **Update Questions Later**:
+   ```tsx
+   sdk.updateQuestions([
+     {
+       id: "q2",
+       text: "What is 3+3?",
+       options: [{ id: "a1", text: "6" }],
+       correctAnswerId: "a1",
+     },
+   ]);
+   ```
 
-   - Update version if needed
-   - Run `make publish`
+### Child (Game) Side
 
-4. **Cleanup**:
+1. **Extend `GameSDK`**:
 
-   - When done with local development:
+   ```typescript
+   import { GameSDK } from "@gptutor/game-sdk";
 
-     ```bash
-     # In your project
-     pnpm unlink --global @gptutor/game-sdk
+   class MyGame extends GameSDK {
+     protected onQuestionsReceived() {
+       const config = this.getConfig();
+       if (config) {
+         console.log(
+           `Title: ${config.title}, Description: ${config.description}`
+         );
+         // Start game with config.questions
+       }
+     }
 
-     # In the SDK directory
-     make unlink
-     ```
+     protected onQuestionsUpdated() {
+       const config = this.getConfig();
+       if (config) {
+         // Update game with config.questions
+       }
+     }
 
-## Contributing
+     answerQuestion(questionId: string, answerId: string, correct: boolean) {
+       this.sendAnswer(questionId, answerId, correct);
+     }
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+     finishGame() {
+       this.completeGame();
+     }
+   }
 
-## License
+   const game = new MyGame();
+   ```
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## API
 
-## API Documentation
+### `GameSDK`
 
-### Core Classes
+- **Methods**:
 
-#### `GameSDK`
+  - `getConfig(): GameConfig | null` - Returns the current game configuration.
+  - `sendAnswer(questionId: string, answerId: string, correct: boolean)` - Sends an answer to the parent.
+  - `completeGame()` - Notifies the parent that the game is complete.
+  - `destroy()` - Cleans up event listeners.
 
-The main class for game implementations. Extend this class to create your game.
+- **Protected Methods** (to override):
+  - `onQuestionsReceived()` - Called when initial questions and config are received.
+  - `onQuestionsUpdated()` - Called when questions are updated.
 
-```typescript
-import { GameSDK } from "@gptutor/game-sdk";
+### `GameParentSDK`
 
-class MyGame extends GameSDK {
-  // Override methods here
-}
-```
+- **Methods**:
+  - `initialize(iframe: HTMLIFrameElement)` - Sets up the SDK with the iframe.
+  - `updateQuestions(questions: Question[])` - Updates the questions sent to the child.
+  - `destroy()` - Cleans up resources.
 
-##### Protected Methods
+## Security Notes
 
-- `onQuestionsReceived()`: Called when questions are first received from the parent
-- `onQuestionsUpdated()`: Called when questions are updated
-- `notifyReady()`: Notifies the parent that the game is ready
-- `sendAnswer(questionId: string, answerId: string, correct: boolean)`: Sends an answer to a question
-- `completeGame()`: Marks the game as completed
-- `sendError(message: string)`: Sends an error message to the parent
-- `sendEvent(eventType: string, data?: unknown)`: Sends a custom event to the parent
+- The child accepts the first `INIT_QUESTIONS` message to set the parent origin, then enforces it for subsequent messages.
+- Messages from child to parent use the parent’s origin after initialization, falling back to `"*"` only for the initial `GAME_READY`.
 
-##### Public Methods
+## Types
 
-- `getQuestions()`: Returns the current questions array
-- `destroy()`: Cleans up event listeners
-
-#### `GameParentSDK`
-
-Class for the parent application to communicate with the game.
-
-```typescript
-import { GameParentSDK } from "@gptutor/game-sdk";
-
-const gameSDK = new GameParentSDK(
-  gameUrl: string,
-  config: GameConfig,
-  callbacks: GameCallbacks
-);
-```
-
-##### Methods
-
-- `initialize(iframe: HTMLIFrameElement)`: Initializes the SDK with an iframe
-- `updateQuestions(questions: Question[])`: Updates the questions in the game
-- `destroy()`: Cleans up resources
-
-### Types
-
-```typescript
-interface Question {
-  id: string;
-  text: string;
-  options: {
-    id: string;
-    text: string;
-  }[];
-  correctAnswerId: string;
-}
-
-interface GameResult {
-  questionId: string;
-  answerId: string;
-  correct: boolean;
-}
-
-type GameErrorType =
-  | "CONNECTION_ERROR"
-  | "SECURITY_ERROR"
-  | "TIMEOUT_ERROR"
-  | "GAME_ERROR";
-
-interface GameConfig {
-  questions: Question[];
-  connectionTimeout?: number;
-}
-
-interface GameCallbacks {
-  onAnswer?: (questionId: string, answerId: string, correct: boolean) => void;
-  onComplete?: (results: GameResult[]) => void;
-  onError?: (errorType: GameErrorType, message: string) => void;
-  onEvent?: (eventType: string, data: unknown) => void;
-}
-```
-
-### Usage Examples
-
-#### Basic Game Implementation
-
-```typescript
-import { GameSDK } from "@gptutor/game-sdk";
-
-class QuizGame extends GameSDK {
-  protected onQuestionsReceived() {
-    const questions = this.getQuestions();
-    // Initialize your game with questions
-    this.renderQuestions(questions);
-  }
-
-  private renderQuestions(questions: Question[]) {
-    questions.forEach((question) => {
-      // Render question and options
-      this.setupQuestionHandlers(question);
-    });
-  }
-
-  private setupQuestionHandlers(question: Question) {
-    question.options.forEach((option) => {
-      // Add click handler
-      this.handleAnswer(question.id, option.id);
-    });
-  }
-
-  private handleAnswer(questionId: string, answerId: string) {
-    const question = this.getQuestions().find((q) => q.id === questionId);
-    const correct = question?.correctAnswerId === answerId;
-    this.sendAnswer(questionId, answerId, correct);
-  }
-}
-
-const game = new QuizGame();
-```
-
-#### Parent Application Implementation
-
-```typescript
-import { GameParentSDK } from "@gptutor/game-sdk";
-
-const gameConfig: GameConfig = {
-  questions: [
-    {
-      id: "1",
-      text: "What is 2+2?",
-      options: [
-        { id: "a", text: "3" },
-        { id: "b", text: "4" },
-        { id: "c", text: "5" },
-      ],
-      correctAnswerId: "b",
-    },
-  ],
-};
-
-const callbacks: GameCallbacks = {
-  onAnswer: (questionId, answerId, correct) => {
-    console.log(`Question ${questionId} answered with ${answerId}: ${correct}`);
-  },
-  onComplete: (results) => {
-    console.log("Game completed!", results);
-  },
-  onError: (errorType, message) => {
-    console.error(`Game error (${errorType}): ${message}`);
-  },
-};
-
-const gameSDK = new GameParentSDK(
-  "https://your-game-url.com",
-  gameConfig,
-  callbacks
-);
-
-// Initialize with iframe
-const iframe = document.getElementById("game-iframe") as HTMLIFrameElement;
-gameSDK.initialize(iframe);
-```
-
-### Communication Flow
-
-1. Parent initializes game with questions
-2. Game receives questions and renders them
-3. User interacts with the game
-4. Game sends answers back to parent
-5. Parent tracks progress and results
-6. Game signals completion when done
-
-### Error Handling
-
-The SDK provides built-in error handling through the `sendError` method and `GameErrorType`:
-
-```typescript
-try {
-  // Game logic
-} catch (error) {
-  this.sendError("Failed to process question");
-}
-```
+- `Question`: `{ id: string, text: string, options: { id: string, text: string }[], correctAnswerId: string }`
+- `GameResult`: `{ questionId: string, answerId: string, correct: boolean }`
+- `GameConfig`: `{ questions: Question[], title?: string, description?: string, connectionTimeout?: number }`
